@@ -20,12 +20,12 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 
-import dalvik.system.DexFile;
-
 import android.app.ActivityManager;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
@@ -36,7 +36,6 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.os.Handler;
-import android.os.PowerManager;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
@@ -620,7 +619,28 @@ class LockScreen extends LinearLayout implements KeyguardScreen {
         if (DBG)
             Log.v(TAG, "*** LockScreen accel is "
                     + (mUnlockWidget.isHardwareAccelerated() ? "on" : "off"));
+        
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_SCREEN_ON);
+        filter.addAction(Intent.ACTION_SCREEN_OFF);
+        context.registerReceiver(mBroadcastReceiver, filter);
     }
+    
+    boolean isScreenOn;
+    
+    private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
+        
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (Intent.ACTION_SCREEN_OFF.equals(action)) {
+                isScreenOn = false;
+            } else if (Intent.ACTION_SCREEN_ON.equals(action)) {
+                isScreenOn = true;
+            }
+            
+        }
+    };
 
     private boolean isSilentMode() {
         return mAudioManager.getRingerMode() != AudioManager.RINGER_MODE_NORMAL;
@@ -671,29 +691,6 @@ class LockScreen extends LinearLayout implements KeyguardScreen {
 
     private Runnable mPendingR1;
     private Runnable mPendingR2;
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_MENU && mEnableMenuKeyInLockScreen) {
-            mCallback.goToUnlockScreen();
-        }
-        if (keyCode == KeyEvent.KEYCODE_POWER && !mFastTorchOn){
-        	// We got Power down lets do fastTorch if it's not already on
-        	startTorch();
-        	return true; // we consumed the power key
-        }
-        return false;
-    }
-   
-    @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event){
-    	if ((keyCode == KeyEvent.KEYCODE_POWER) && (mFastTorchOn)){
-    		// caught power key up, and torch is on, let's turn it off.
-    		quitTorch();
-    		return true;
-    	}
-    	return false;
-    } 
     
     void updateConfiguration() {
         Configuration newConfig = getResources().getConfiguration();
