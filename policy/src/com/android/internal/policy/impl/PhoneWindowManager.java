@@ -3188,14 +3188,17 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     }
     
     void handleChangeTorchState(boolean on) {
-        Runnable btnHandler;
-
-        if (on)
-            btnHandler = mTorchOn;
-        else
-            btnHandler = mTorchOff;
-
-        mHandler.postDelayed(btnHandler, ViewConfiguration.getLongPressTimeout());
+        if (on) {
+            mHandler.postDelayed(mTorchOn, ViewConfiguration.getLongPressTimeout());
+        } else {
+            mHandler.removeCallbacks(mTorchOn);
+            mHandler.post(mTorchOff);
+        }
+    }
+    
+    void handleCancelTorch() {
+        mHandler.removeCallbacks(mTorchOff);
+        mHandler.removeCallbacks(mTorchOn);
     }
 
     void handleVolumeLongPressAbort() {
